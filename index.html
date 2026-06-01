@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="id" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FreshMart Grocery</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { jakarta: ['Plus Jakarta Sans', 'sans-serif'] },
+          colors: {
+            fresh: { 50:'#f0fdf4',100:'#dcfce7',200:'#bbf7d0',300:'#86efac',400:'#4ade80',500:'#22c55e',600:'#16a34a',700:'#15803d',800:'#166534',900:'#14532d' },
+            orange: { 50:'#fff7ed',100:'#ffedd5',200:'#fed7aa',300:'#fdba74',400:'#fb923c',500:'#f97316',600:'#ea580c' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes slideIn { from { transform:translateX(100%); } to { transform:translateX(0); } }
+    .fade-up { animation: fadeUp 0.5s ease forwards; }
+    .slide-in { animation: slideIn 0.3s ease forwards; }
+    .product-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); }
+    .product-card { transition: all 0.3s ease; }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ <script src="/_sdk/telemetry_sdk.js"></script></head>
+ <body class="h-full">
+  <div id="app" class="h-full w-full overflow-auto bg-gray-50 font-jakarta">
+   <!-- Navigation -->
+   <nav class="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+     <div class="flex items-center gap-2">
+      <div class="w-9 h-9 bg-fresh-600 rounded-xl flex items-center justify-center">
+       <i data-lucide="leaf" class="w-5 h-5 text-white"></i>
+      </div><span id="nav-brand" class="text-xl font-bold text-fresh-800 hidden sm:block">FreshMart</span>
+     </div>
+     <div class="flex-1 max-w-xl relative">
+      <input id="search-input" type="text" placeholder="Cari sayur, buah, daging..." class="w-full pl-10 pr-4 py-2.5 rounded-full bg-gray-100 border-0 focus:ring-2 focus:ring-fresh-400 text-sm" oninput="filterProducts(this.value)"> <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+     </div>
+     <div class="flex items-center gap-2">
+      <button onclick="showPage('tracking')" class="hidden sm:flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-fresh-600 rounded-lg hover:bg-fresh-50 transition"> <i data-lucide="package" class="w-4 h-4"></i><span class="hidden md:inline">Pesanan</span> </button> <button onclick="showPage('login')" class="hidden sm:flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-fresh-600 rounded-lg hover:bg-fresh-50 transition"> <i data-lucide="user" class="w-4 h-4"></i><span class="hidden md:inline">Masuk</span> </button> <button onclick="toggleCart()" class="relative p-2 text-gray-600 hover:text-fresh-600 rounded-lg hover:bg-fresh-50 transition"> <i data-lucide="shopping-bag" class="w-5 h-5"></i> <span id="cart-badge" class="absolute -top-0.5 -right-0.5 w-5 h-5 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center font-bold hidden">0</span> </button> <button onclick="toggleMobileMenu()" class="sm:hidden p-2 text-gray-600 hover:text-fresh-600 rounded-lg"> <i data-lucide="menu" class="w-5 h-5"></i> </button>
+     </div>
+    </div><!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden sm:hidden border-t border-gray-100 bg-white px-4 py-3 space-y-2">
+     <button onclick="showPage('tracking');toggleMobileMenu()" class="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-fresh-50"><i data-lucide="package" class="w-4 h-4"></i>Lacak Pesanan</button> <button onclick="showPage('login');toggleMobileMenu()" class="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-fresh-50"><i data-lucide="user" class="w-4 h-4"></i>Masuk / Daftar</button> <button onclick="showPage('admin');toggleMobileMenu()" class="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-fresh-50"><i data-lucide="layout-dashboard" class="w-4 h-4"></i>Dashboard Admin</button>
+    </div>
+   </nav><!-- Cart Sidebar -->
+   <div id="cart-overlay" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="toggleCart()"></div>
+    <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl slide-in flex flex-col">
+     <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+      <h2 class="text-lg font-bold text-gray-800">Keranjang Belanja</h2><button onclick="toggleCart()" class="p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="x" class="w-5 h-5"></i></button>
+     </div>
+     <div id="cart-items" class="flex-1 overflow-auto p-5 space-y-4"></div>
+     <div class="p-5 border-t border-gray-100 space-y-3">
+      <div class="flex justify-between text-sm text-gray-600"><span>Subtotal</span><span id="cart-subtotal">Rp 0</span>
+      </div>
+      <div class="flex justify-between text-sm text-gray-600"><span>Ongkir</span><span class="text-fresh-600 font-medium">Gratis</span>
+      </div>
+      <div class="flex justify-between text-lg font-bold text-gray-800 pt-2 border-t"><span>Total</span><span id="cart-total">Rp 0</span>
+      </div><button onclick="showPage('checkout');toggleCart()" class="w-full py-3 bg-fresh-600 hover:bg-fresh-700 text-white font-semibold rounded-xl transition">Checkout</button>
+     </div>
+    </div>
+   </div><!-- Main Content -->
+   <main id="main-content">
+    <!-- HOME PAGE -->
+    <div id="page-home">
+     <!-- Hero -->
+     <section class="relative overflow-hidden bg-gradient-to-br from-fresh-600 via-fresh-500 to-fresh-400">
+      <div class="absolute inset-0 opacity-10">
+       <div class="absolute top-10 left-10 w-32 h-32 bg-white rounded-full"></div>
+       <div class="absolute bottom-10 right-20 w-48 h-48 bg-white rounded-full"></div>
+       <div class="absolute top-1/2 left-1/3 w-24 h-24 bg-white rounded-full"></div>
+      </div>
+      <div class="max-w-7xl mx-auto px-4 py-12 md:py-20 relative">
+       <div class="max-w-2xl fade-up">
+        <div id="promo-badge" class="inline-flex items-center gap-2 bg-orange-500 text-white px-4 py-1.5 rounded-full text-sm font-semibold mb-5">
+         <i data-lucide="zap" class="w-4 h-4"></i><span>Diskon 30% untuk pembelian pertama!</span>
+        </div>
+        <h1 id="hero-title" class="text-3xl md:text-5xl font-extrabold text-white leading-tight mb-4">Belanja Segar, Langsung ke Rumah</h1>
+        <p id="hero-subtitle" class="text-lg text-white/90 mb-8">Sayur, buah, daging, dan kebutuhan dapur berkualitas dengan harga terbaik. Diantar dalam 2 jam!</p>
+        <div class="flex flex-wrap gap-3">
+         <button onclick="document.getElementById('categories').scrollIntoView({behavior:'smooth'})" class="px-6 py-3 bg-white text-fresh-700 font-semibold rounded-xl hover:bg-gray-50 transition shadow-lg">Belanja Sekarang</button> <button onclick="showPage('tracking')" class="px-6 py-3 bg-white/20 text-white font-semibold rounded-xl hover:bg-white/30 transition backdrop-blur-sm border border-white/30">Lacak Pesanan</button>
+        </div>
+       </div>
+      </div>
+     </section><!-- Categories -->
+     <section id="categories" class="max-w-7xl mx-auto px-4 py-10">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Kategori Produk</h2>
+      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-8 gap-3" id="category-grid"></div>
+     </section><!-- Products -->
+     <section class="max-w-7xl mx-auto px-4 pb-12">
+      <div class="flex items-center justify-between mb-6">
+       <h2 class="text-2xl font-bold text-gray-800">Produk Populer</h2><select id="category-filter" onchange="filterByCategory(this.value)" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-fresh-400"> <option value="all">Semua</option> </select>
+      </div>
+      <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+     </section>
+    </div><!-- LOGIN PAGE -->
+    <div id="page-login" class="hidden">
+     <div class="max-w-md mx-auto px-4 py-12">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+       <div class="text-center mb-8">
+        <div class="w-14 h-14 bg-fresh-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><i data-lucide="user" class="w-7 h-7 text-fresh-600"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-800">Masuk ke Akun</h2>
+        <p class="text-gray-500 text-sm mt-1">Belanja lebih mudah dengan akun</p>
+       </div>
+       <div id="login-tabs" class="flex bg-gray-100 rounded-xl p-1 mb-6">
+        <button onclick="switchAuthTab('login')" class="auth-tab flex-1 py-2 text-sm font-semibold rounded-lg bg-white text-fresh-700 shadow-sm" data-tab="login">Masuk</button> <button onclick="switchAuthTab('register')" class="auth-tab flex-1 py-2 text-sm font-semibold rounded-lg text-gray-500" data-tab="register">Daftar</button>
+       </div>
+       <form onsubmit="handleAuth(event)" class="space-y-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-fresh-400 focus:border-transparent text-sm" placeholder="email@contoh.com">
+        </div>
+        <div id="register-name" class="hidden"><label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label><input type="text" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-fresh-400 text-sm" placeholder="Nama lengkap">
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">Password</label><input type="password" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-fresh-400 text-sm" placeholder="••••••••">
+        </div><button type="submit" class="w-full py-3 bg-fresh-600 hover:bg-fresh-700 text-white font-semibold rounded-xl transition">Masuk</button>
+       </form>
+       <p class="text-center text-xs text-gray-400 mt-6">Demo: Klik masuk untuk melanjutkan</p>
+      </div><button onclick="showPage('home')" class="mt-4 text-sm text-fresh-600 hover:underline mx-auto block">← Kembali ke Beranda</button>
+     </div>
+    </div><!-- CHECKOUT PAGE -->
+    <div id="page-checkout" class="hidden">
+     <div class="max-w-3xl mx-auto px-4 py-8">
+      <button onclick="showPage('home')" class="flex items-center gap-1 text-sm text-fresh-600 hover:underline mb-6"><i data-lucide="arrow-left" class="w-4 h-4"></i>Kembali</button>
+      <h1 class="text-2xl font-bold text-gray-800 mb-6">Checkout</h1>
+      <div class="grid md:grid-cols-5 gap-6">
+       <div class="md:col-span-3 space-y-4">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100">
+         <h3 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4 text-fresh-600"></i>Alamat Pengiriman</h3><textarea class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-fresh-400" rows="3" placeholder="Masukkan alamat lengkap..."></textarea>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-gray-100">
+         <h3 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i data-lucide="credit-card" class="w-4 h-4 text-fresh-600"></i>Metode Pembayaran</h3>
+         <div class="space-y-2" id="payment-methods">
+          <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-fresh-400 transition"><input type="radio" name="payment" value="gopay" checked class="text-fresh-600"><span class="text-sm font-medium">GoPay</span></label> <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-fresh-400 transition"><input type="radio" name="payment" value="ovo" class="text-fresh-600"><span class="text-sm font-medium">OVO</span></label> <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-fresh-400 transition"><input type="radio" name="payment" value="dana" class="text-fresh-600"><span class="text-sm font-medium">DANA</span></label> <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-fresh-400 transition"><input type="radio" name="payment" value="bank" class="text-fresh-600"><span class="text-sm font-medium">Transfer Bank</span></label> <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-fresh-400 transition"><input type="radio" name="payment" value="cod" class="text-fresh-600"><span class="text-sm font-medium">Bayar di Tempat (COD)</span></label>
+         </div>
+        </div>
+       </div>
+       <div class="md:col-span-2">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 sticky top-24">
+         <h3 class="font-semibold text-gray-800 mb-4">Ringkasan</h3>
+         <div id="checkout-summary" class="space-y-2 text-sm text-gray-600 mb-4"></div>
+         <div class="border-t pt-3 flex justify-between font-bold text-gray-800"><span>Total</span><span id="checkout-total">Rp 0</span>
+         </div><button onclick="placeOrder()" class="w-full mt-4 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition">Bayar Sekarang</button>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div><!-- TRACKING PAGE -->
+    <div id="page-tracking" class="hidden">
+     <div class="max-w-2xl mx-auto px-4 py-8">
+      <button onclick="showPage('home')" class="flex items-center gap-1 text-sm text-fresh-600 hover:underline mb-6"><i data-lucide="arrow-left" class="w-4 h-4"></i>Kembali</button>
+      <h1 class="text-2xl font-bold text-gray-800 mb-6">Lacak Pesanan</h1>
+      <div id="tracking-content"></div>
+     </div>
+    </div><!-- PRODUCT DETAIL PAGE -->
+    <div id="page-product" class="hidden">
+     <div class="max-w-4xl mx-auto px-4 py-8">
+      <button onclick="showPage('home')" class="flex items-center gap-1 text-sm text-fresh-600 hover:underline mb-6"><i data-lucide="arrow-left" class="w-4 h-4"></i>Kembali</button>
+      <div id="product-detail"></div>
+     </div>
+    </div><!-- ADMIN PAGE -->
+    <div id="page-admin" class="hidden">
+     <div class="max-w-6xl mx-auto px-4 py-8">
+      <button onclick="showPage('home')" class="flex items-center gap-1 text-sm text-fresh-600 hover:underline mb-6"><i data-lucide="arrow-left" class="w-4 h-4"></i>Kembali</button>
+      <h1 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2"><i data-lucide="layout-dashboard" class="w-6 h-6 text-fresh-600"></i>Dashboard Admin</h1>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+       <div class="bg-white rounded-2xl p-5 border border-gray-100">
+        <p class="text-sm text-gray-500">Total Pesanan</p>
+        <p class="text-2xl font-bold text-gray-800 mt-1">1,248</p>
+        <p class="text-xs text-fresh-600 mt-1">↑ 12% dari minggu lalu</p>
+       </div>
+       <div class="bg-white rounded-2xl p-5 border border-gray-100">
+        <p class="text-sm text-gray-500">Pendapatan</p>
+        <p class="text-2xl font-bold text-gray-800 mt-1">Rp 45.2M</p>
+        <p class="text-xs text-fresh-600 mt-1">↑ 8% dari minggu lalu</p>
+       </div>
+       <div class="bg-white rounded-2xl p-5 border border-gray-100">
+        <p class="text-sm text-gray-500">Pelanggan Aktif</p>
+        <p class="text-2xl font-bold text-gray-800 mt-1">3,892</p>
+        <p class="text-xs text-orange-500 mt-1">↑ 5% dari minggu lalu</p>
+       </div>
+       <div class="bg-white rounded-2xl p-5 border border-gray-100">
+        <p class="text-sm text-gray-500">Produk Terjual</p>
+        <p class="text-2xl font-bold text-gray-800 mt-1">8,451</p>
+        <p class="text-xs text-fresh-600 mt-1">↑ 15% dari minggu lalu</p>
+       </div>
+      </div>
+      <div class="bg-white rounded-2xl p-6 border border-gray-100">
+       <h3 class="font-semibold text-gray-800 mb-4">Pesanan Terbaru</h3>
+       <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+         <thead>
+          <tr class="border-b border-gray-100 text-left text-gray-500">
+           <th class="pb-3 font-medium">ID</th>
+           <th class="pb-3 font-medium">Pelanggan</th>
+           <th class="pb-3 font-medium">Total</th>
+           <th class="pb-3 font-medium">Status</th>
+          </tr>
+         </thead>
+         <tbody>
+          <tr class="border-b border-gray-50">
+           <td class="py-3 font-mono text-xs">#FM-1248</td>
+           <td class="py-3">Andi Pratama</td>
+           <td class="py-3">Rp 185.000</td>
+           <td class="py-3"><span class="px-2 py-1 bg-fresh-100 text-fresh-700 rounded-full text-xs font-medium">Dikirim</span></td>
+          </tr>
+          <tr class="border-b border-gray-50">
+           <td class="py-3 font-mono text-xs">#FM-1247</td>
+           <td class="py-3">Sari Dewi</td>
+           <td class="py-3">Rp 92.000</td>
+           <td class="py-3"><span class="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">Diproses</span></td>
+          </tr>
+          <tr class="border-b border-gray-50">
+           <td class="py-3 font-mono text-xs">#FM-1246</td>
+           <td class="py-3">Budi Santoso</td>
+           <td class="py-3">Rp 234.000</td>
+           <td class="py-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Selesai</span></td>
+          </tr>
+          <tr>
+           <td class="py-3 font-mono text-xs">#FM-1245</td>
+           <td class="py-3">Lisa Huang</td>
+           <td class="py-3">Rp 156.000</td>
+           <td class="py-3"><span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">Menunggu</span></td>
+          </tr>
+         </tbody>
+        </table>
+       </div>
+      </div>
+     </div>
+    </div><!-- ORDER SUCCESS -->
+    <div id="page-success" class="hidden">
+     <div class="max-w-md mx-auto px-4 py-16 text-center">
+      <div class="w-20 h-20 bg-fresh-100 rounded-full flex items-center justify-center mx-auto mb-6"><i data-lucide="check-circle" class="w-10 h-10 text-fresh-600"></i>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">Pesanan Berhasil!</h1>
+      <p class="text-gray-500 mb-2">Terima kasih atas pesanan Anda</p>
+      <p class="text-sm text-gray-400 mb-8">ID Pesanan: <span class="font-mono font-semibold text-fresh-700">#FM-1249</span></p>
+      <div class="flex gap-3 justify-center">
+       <button onclick="showPage('tracking')" class="px-5 py-2.5 bg-fresh-600 text-white rounded-xl font-semibold hover:bg-fresh-700 transition">Lacak Pesanan</button> <button onclick="showPage('home')" class="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition">Lanjut Belanja</button>
+      </div>
+     </div>
+    </div>
+   </main><!-- Footer -->
+   <footer class="bg-fresh-900 text-white mt-12">
+    <div class="max-w-7xl mx-auto px-4 py-10">
+     <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-8">
+      <div>
+       <div class="flex items-center gap-2 mb-4">
+        <div class="w-8 h-8 bg-fresh-500 rounded-lg flex items-center justify-center"><i data-lucide="leaf" class="w-4 h-4 text-white"></i>
+        </div><span id="footer-brand" class="font-bold text-lg">FreshMart</span>
+       </div>
+       <p class="text-sm text-fresh-200">Belanja kebutuhan harian berkualitas dengan harga terbaik.</p>
+      </div>
+      <div>
+       <h4 class="font-semibold mb-3">Kategori</h4>
+       <ul class="space-y-2 text-sm text-fresh-200">
+        <li>Sayuran</li>
+        <li>Buah-buahan</li>
+        <li>Daging &amp; Seafood</li>
+        <li>Bumbu Dapur</li>
+       </ul>
+      </div>
+      <div>
+       <h4 class="font-semibold mb-3">Layanan</h4>
+       <ul class="space-y-2 text-sm text-fresh-200">
+        <li>Pengiriman 2 Jam</li>
+        <li>Garansi Segar</li>
+        <li>Cashback Setiap Hari</li>
+       </ul>
+      </div>
+      <div>
+       <h4 class="font-semibold mb-3">Hubungi</h4>
+       <ul class="space-y-2 text-sm text-fresh-200">
+        <li>cs@freshmart.id</li>
+        <li>0800-123-4567</li>
+        <li>Jakarta, Indonesia</li>
+       </ul>
+      </div>
+     </div>
+     <div class="border-t border-fresh-700 mt-8 pt-6 text-center text-sm text-fresh-300">
+      © 2024 FreshMart. All rights reserved.
+     </div>
+    </div>
+   </footer>
+  </div>
+  <script>
+// Data
+const categories = [
+  { id:'sayur', name:'Sayuran', icon:'leaf' },
+  { id:'buah', name:'Buah-Buahan', icon:'apple' },
+  { id:'daging', name:'Daging Segar', icon:'beef' },
+  { id:'seafood', name:'Seafood', icon:'fish' },
+  { id:'bumbu', name:'Bumbu Dapur', icon:'spice' },
+  { id:'minuman', name:'Minuman', icon:'bottle' },
+  { id:'frozen', name:'Frozen Food', icon:'snowflake' },
+  { id:'sembako', name:'Sembako', icon:'package' }
+];
+
+const products = [
+  // SAYURAN
+  { id:1, name:'Brokoli Segar Premium', price:18000, cat:'sayur', rating:4.9, reviews:234, image:'https://images.unsplash.com/photo-1611078980875-7de07b710222?w=500&h=500&fit=crop', unit:'500g', description:'Brokoli organik segar dengan kepala rapat dan warna hijau cerah' },
+  { id:2, name:'Wortel Merah Organik', price:15000, cat:'sayur', rating:4.8, reviews:189, image:'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=500&h=500&fit=crop', unit:'500g', description:'Wortel lokal berkualitas tinggi, manis dan renyah' },
+  { id:3, name:'Bayam Hijau Segar', price:12000, cat:'sayur', rating:4.7, reviews:156, image:'https://images.unsplash.com/photo-1599599810694-b3b2cebf2e00?w=500&h=500&fit=crop', unit:'Ikat', description:'Bayam pilihan dengan daun lembut dan segar' },
+  { id:4, name:'Tomat Merah Segar', price:22000, cat:'sayur', rating:4.9, reviews:267, image:'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=500&h=500&fit=crop', unit:'500g', description:'Tomat matang optimal, sempurna untuk masakan' },
+  { id:5, name:'Kubis Hijau Premium', price:16000, cat:'sayur', rating:4.6, reviews:143, image:'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=500&h=500&fit=crop', unit:'1 buah', description:'Kubis segar dengan tekstur rapat dan berat' },
+  { id:6, name:'Cabai Merah Pilihan', price:28000, cat:'sayur', rating:4.8, reviews:198, image:'https://images.unsplash.com/photo-1585518419759-87df2e94f859?w=500&h=500&fit=crop', unit:'250g', description:'Cabai merah pedas dengan aroma khas' },
+  { id:7, name:'Paprika Multi Warna', price:25000, cat:'sayur', rating:4.7, reviews:167, image:'https://images.unsplash.com/photo-1599599810982-b7f6cac5b0bb?w=500&h=500&fit=crop', unit:'350g', description:'Campuran paprika merah, kuning, dan oranye' },
+  { id:8, name:'Mentimun Segar Organik', price:14000, cat:'sayur', rating:4.8, reviews:172, image:'https://images.unsplash.com/photo-1601050915597-40ab08ce5950?w=500&h=500&fit=crop', unit:'500g', description:'Mentimun crisp segar dan renyah' },
+
+  // BUAH-BUAHAN
+  { id:9, name:'Apel Fuji Premium', price:55000, cat:'buah', rating:4.9, reviews:312, image:'https://images.unsplash.com/photo-1560806647-0ce6b1ce9c2b?w=500&h=500&fit=crop', unit:'1kg', description:'Apel import premium dengan rasa manis dan asam seimbang' },
+  { id:10, name:'Pisang Cavendish Segar', price:28000, cat:'buah', rating:4.8, reviews:245, image:'https://images.unsplash.com/photo-1571771894821-ce580b984e48?w=500&h=500&fit=crop', unit:'1kg', description:'Pisang kuning matang optimal, manis alami' },
+  { id:11, name:'Mangga Harum Manis', price:42000, cat:'buah', rating:4.9, reviews:289, image:'https://images.unsplash.com/photo-1564064642857-f0fdf549c9d8?w=500&h=500&fit=crop', unit:'1kg', description:'Mangga premium dengan rasa manis dan daging buah lembut' },
+  { id:12, name:'Jeruk Manis Valencia', price:32000, cat:'buah', rating:4.7, reviews:203, image:'https://images.unsplash.com/photo-1587735147141-2c07b25e0bbc?w=500&h=500&fit=crop', unit:'1kg', description:'Jeruk manis juicy dengan rasa segar' },
+  { id:13, name:'Strawberry Segar Pilihan', price:48000, cat:'buah', rating:4.9, reviews:356, image:'https://images.unsplash.com/photo-1587132137056-bfbf0166ae50?w=500&h=500&fit=crop', unit:'500g', description:'Strawberry merah segar dengan rasa manis dan asam' },
+  { id:14, name:'Anggur Hijau Impor', price:65000, cat:'buah', rating:4.8, reviews:278, image:'https://images.unsplash.com/photo-1599599810694-b3b2cebf2e00?w=500&h=500&fit=crop', unit:'500g', description:'Anggur hijau premium tanpa biji' },
+  { id:15, name:'Nanas Segar Manis', price:35000, cat:'buah', rating:4.7, reviews:189, image:'https://images.unsplash.com/photo-1599599810982-b7f6cac5b0bb?w=500&h=500&fit=crop', unit:'1 buah', description:'Nanas pilihan dengan rasa manis optimal' },
+  { id:16, name:'Buah Naga Merah', price:38000, cat:'buah', rating:4.8, reviews:167, image:'https://images.unsplash.com/photo-1590921591226-7c14be70e022?w=500&h=500&fit=crop', unit:'1 buah', description:'Buah naga merah dengan daging putih dan biji hitam' },
+
+  // DAGING SEGAR
+  { id:17, name:'Daging Sapi Premium Grade A', price:165000, cat:'daging', rating:4.9, reviews:178, image:'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=500&h=500&fit=crop', unit:'500g', description:'Daging sapi berkualitas premium, empuk dan bermarbling' },
+  { id:18, name:'Ayam Potong Segar', price:75000, cat:'daging', rating:4.8, reviews:234, image:'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=500&h=500&fit=crop', unit:'1kg', description:'Ayam segar berkualitas dari peternakan terpilih' },
+  { id:19, name:'Daging Babi Tanpa Lemak', price:145000, cat:'daging', rating:4.7, reviews:145, image:'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&h=500&fit=crop', unit:'500g', description:'Daging babi premium tanpa lemak berlebihan' },
+  { id:20, name:'Daging Giling Premium', price:85000, cat:'daging', rating:4.8, reviews:267, image:'https://images.unsplash.com/photo-1555939594-58d7cb561818?w=500&h=500&fit=crop', unit:'500g', description:'Daging giling siap untuk berbagai masakan' },
+  { id:21, name:'Perut Ayam Segar', price:48000, cat:'daging', rating:4.6, reviews:112, image:'https://images.unsplash.com/photo-1604617915635-aca3615def10?w=500&h=500&fit=crop', unit:'500g', description:'Daging ayam premium dipotong siap masak' },
+  { id:22, name:'Daging Kambing Segar', price:125000, cat:'daging', rating:4.8, reviews:189, image:'https://images.unsplash.com/photo-1607588063949-6dbce80e637b?w=500&h=500&fit=crop', unit:'500g', description:'Daging kambing pilihan empuk dan beraroma' },
+
+  // SEAFOOD
+  { id:23, name:'Udang Jumbo Segar', price:118000, cat:'seafood', rating:4.9, reviews:267, image:'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=500&h=500&fit=crop', unit:'500g', description:'Udang jumbo segar dengan ukuran besar dan renyah' },
+  { id:24, name:'Ikan Salmon Norway', price:155000, cat:'seafood', rating:4.9, reviews:312, image:'https://images.unsplash.com/photo-1580959375944-abd7e991f971?w=500&h=500&fit=crop', unit:'300g', description:'Salmon import premium dengan daging merah dan lembut' },
+  { id:25, name:'Cumi-Cumi Segar Premium', price:95000, cat:'seafood', rating:4.8, reviews:178, image:'https://images.unsplash.com/photo-1613395877844-665f4c34d032?w=500&h=500&fit=crop', unit:'400g', description:'Cumi-cumi segar dengan tekstur empuk' },
+  { id:26, name:'Ikan Nila Segar', price:58000, cat:'seafood', rating:4.7, reviews:145, image:'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=500&h=500&fit=crop', unit:'1kg', description:'Ikan nila segar dari air tawar berkualitas' },
+  { id:27, name:'Kepiting Segar Pilihan', price:185000, cat:'seafood', rating:4.9, reviews:234, image:'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=500&h=500&fit=crop', unit:'500g', description:'Kepiting segar dengan daging putih dan isi berlimpah' },
+  { id:28, name:'Teri Kering Pilihan', price:32000, cat:'seafood', rating:4.6, reviews:156, image:'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=500&h=500&fit=crop', unit:'250g', description:'Teri kering berkualitas tinggi untuk kaldu' },
+
+  // BUMBU DAPUR
+  { id:29, name:'Bawang Merah Pilihan', price:38000, cat:'bumbu', rating:4.8, reviews:289, image:'https://images.unsplash.com/photo-1596040696634-0e19e8f20c28?w=500&h=500&fit=crop', unit:'500g', description:'Bawang merah pilihan premium dengan ukuran besar' },
+  { id:30, name:'Bawang Putih Premium', price:32000, cat:'bumbu', rating:4.8, reviews:267, image:'https://images.unsplash.com/photo-1596040696634-0e19e8f20c28?w=500&h=500&fit=crop', unit:'250g', description:'Bawang putih tunggal berkualitas tinggi' },
+  { id:31, name:'Jahe Segar Organik', price:28000, cat:'bumbu', rating:4.7, reviews:178, image:'https://images.unsplash.com/photo-1596040696634-0e19e8f20c28?w=500&h=500&fit=crop', unit:'350g', description:'Jahe segar dengan aroma kuat dan pedas' },
+  { id:32, name:'Kunyit Segar Premium', price:24000, cat:'bumbu', rating:4.6, reviews:145, image:'https://images.unsplash.com/photo-1596040696634-0e19e8f20c28?w=500&h=500&fit=crop', unit:'300g', description:'Kunyit segar dengan warna kuning cerah' },
+  { id:33, name:'Lada Hitam Muda Pilihan', price:48000, cat:'bumbu', rating:4.8, reviews:213, image:'https://images.unsplash.com/photo-1596040696634-0e19e8f20c28?w=500&h=500&fit=crop', unit:'100g', description:'Lada hitam premium dengan aroma kuat' },
+  { id:34, name:'Ketumbar Butir Premium', price:35000, cat:'bumbu', rating:4.7, reviews:167, image:'https://images.unsplash.com/photo-1596040696634-0e19e8f20c28?w=500&h=500&fit=crop', unit:'150g', description:'Ketumbar butir pilihan dengan aroma wangi' },
+
+  // MINUMAN
+  { id:35, name:'Susu Murni Fresh 1L', price:28000, cat:'minuman', rating:4.9, reviews:445, image:'https://images.unsplash.com/photo-1608078328068-ea33080850d5?w=500&h=500&fit=crop', unit:'1L', description:'Susu segar langsung dari peternakan terpilih' },
+  { id:36, name:'Jus Jeruk Segar Alami', price:35000, cat:'minuman', rating:4.8, reviews:312, image:'https://images.unsplash.com/photo-1600271886742-f049cd1f2c5c?w=500&h=500&fit=crop', unit:'1L', description:'Jus jeruk segar tanpa pengawet buatan' },
+  { id:37, name:'Kopi Premium Arabika', price:65000, cat:'minuman', rating:4.9, reviews:378, image:'https://images.unsplash.com/photo-1559056199-641a0ac8b3f2?w=500&h=500&fit=crop', unit:'250g', description:'Kopi arabika premium dari perkebunan pilihan' },
+  { id:38, name:'Teh Hijau Organik', price:42000, cat:'minuman', rating:4.7, reviews:267, image:'https://images.unsplash.com/photo-1597318129267-43cfe2e4a5ab?w=500&h=500&fit=crop', unit:'100g', description:'Teh hijau organik dengan manfaat kesehatan' },
+  { id:39, name:'Madu Murni Asli', price:85000, cat:'minuman', rating:4.9, reviews:423, image:'https://images.unsplash.com/photo-1587049352341-3c20a9a27356?w=500&h=500&fit=crop', unit:'500ml', description:'Madu murni tanpa campuran dari lebah pilihan' },
+  { id:40, name:'Cuko Kombucha Premium', price:48000, cat:'minuman', rating:4.6, reviews:189, image:'https://images.unsplash.com/photo-1608270861620-7c80b897a842?w=500&h=500&fit=crop', unit:'500ml', description:'Kombucha probiotik alami dan menyegarkan' },
+
+  // FROZEN FOOD
+  { id:41, name:'Nugget Ayam Premium', price:42000, cat:'frozen', rating:4.8, reviews:334, image:'https://images.unsplash.com/photo-1585238341710-4abb9a003b48?w=500&h=500&fit=crop', unit:'500g', description:'Nugget ayam premium siap goreng' },
+  { id:42, name:'Sosis Sapi Premium', price:38000, cat:'frozen', rating:4.7, reviews:278, image:'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&h=500&fit=crop', unit:'500g', description:'Sosis sapi berkualitas tinggi tanpa pengawet' },
+  { id:43, name:'Kentang Beku Potong', price:32000, cat:'frozen', rating:4.8, reviews:245, image:'https://images.unsplash.com/photo-1599912676162-22aad69f2be0?w=500&h=500&fit=crop', unit:'500g', description:'Kentang beku siap goreng atau rebus' },
+  { id:44, name:'Bakso Daging Premium', price:45000, cat:'frozen', rating:4.9, reviews:312, image:'https://images.unsplash.com/photo-1603894372506-64a6a4ff9127?w=500&h=500&fit=crop', unit:'400g', description:'Bakso daging premium siap rebus' },
+  { id:45, name:'Meatball Sapi', price:48000, cat:'frozen', rating:4.7, reviews:198, image:'https://images.unsplash.com/photo-1603894372506-64a6a4ff9127?w=500&h=500&fit=crop', unit:'450g', description:'Meatball lembut siap masak' },
+  { id:46, name:'Perkedel Kentang Frozen', price:35000, cat:'frozen', rating:4.6, reviews:167, image:'https://images.unsplash.com/photo-1599912676162-22aad69f2be0?w=500&h=500&fit=crop', unit:'350g', description:'Perkedel renyah siap goreng' },
+
+  // SEMBAKO
+  { id:47, name:'Beras Premium Putih', price:65000, cat:'sembako', rating:4.9, reviews:512, image:'https://images.unsplash.com/photo-1586985289688-cacb595a62ed?w=500&h=500&fit=crop', unit:'5kg', description:'Beras premium putih pilihan berkualitas tinggi' },
+  { id:48, name:'Minyak Goreng Premium', price:48000, cat:'sembako', rating:4.8, reviews:467, image:'https://images.unsplash.com/photo-1596040696634-0e19e8f20c28?w=500&h=500&fit=crop', unit:'2L', description:'Minyak goreng premium tanpa kolesterol' },
+  { id:49, name:'Gula Pasir Premium', price:32000, cat:'sembako', rating:4.7, reviews:389, image:'https://images.unsplash.com/photo-1599599810694-b3b2cebf2e00?w=500&h=500&fit=crop', unit:'1kg', description:'Gula pasir putih kristal berkualitas' },
+  { id:50, name:'Tepung Terigu Berkualitas', price:28000, cat:'sembako', rating:4.6, reviews:312, image:'https://images.unsplash.com/photo-1599599810694-b3b2cebf2e00?w=500&h=500&fit=crop', unit:'1kg', description:'Tepung terigu premium untuk berbagai masakan' },
+  { id:51, name:'Garam Halus Murni', price:12000, cat:'sembako', rating:4.8, reviews:234, image:'https://images.unsplash.com/photo-1596040696634-0e19e8f20c28?w=500&h=500&fit=crop', unit:'500g', description:'Garam halus murni tanpa iodium' },
+  { id:52, name:'Kaldu Ayam Instan', price:22000, cat:'sembako', rating:4.7, reviews:267, image:'https://images.unsplash.com/photo-1596040696634-0e19e8f20c28?w=500&h=500&fit=crop', unit:'250g', description:'Kaldu ayam premium siap pakai' },
+];
+
+let cart = [];
+let currentCat = 'all';
+
+function formatRp(n) { return 'Rp ' + n.toLocaleString('id-ID'); }
+
+// Render categories
+function renderCategories() {
+  const grid = document.getElementById('category-grid');
+  grid.innerHTML = categories.map(c => `
+    <button onclick="filterByCategory('${c.id}')" class="flex flex-col items-center gap-2 p-3 bg-white rounded-2xl border border-gray-100 hover:border-fresh-300 hover:shadow-md transition hover:bg-fresh-50">
+      <i data-lucide="${c.icon}" class="w-6 h-6 text-fresh-600"></i>
+      <span class="text-xs font-medium text-gray-700 text-center">${c.name}</span>
+    </button>
+  `).join('');
+  const filter = document.getElementById('category-filter');
+  filter.innerHTML = '<option value="all">Semua</option>' + categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  lucide.createIcons();
+}
+
+// Render products
+function renderProducts(items) {
+  const grid = document.getElementById('product-grid');
+  grid.innerHTML = items.map((p,i) => `
+    <div class="product-card bg-white rounded-xl border border-gray-100 overflow-hidden cursor-pointer shadow-sm hover:shadow-xl" style="animation-delay:${i*50}ms" onclick="showProduct(${p.id})">
+      <div class="h-48 bg-gray-100 overflow-hidden flex items-center justify-center relative group">
+        <img src="${p.image}" alt="${p.name}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.style.display='none';this.parentElement.style.background='linear-gradient(135deg, #e5e7eb 0%, #f3f4f6 100%)'">
+        <div class="absolute top-2 right-2 bg-orange-500 text-white px-2 py-1 rounded-lg text-xs font-bold">SEGAR</div>
+      </div>
+      <div class="p-3.5">
+        <p class="text-xs text-fresh-600 font-bold mb-1 uppercase tracking-wider">${p.unit}</p>
+        <h3 class="text-sm font-bold text-gray-800 leading-tight mb-1 line-clamp-2">${p.name}</h3>
+        <p class="text-xs text-gray-500 mb-2">${p.description}</p>
+        <div class="flex items-center gap-1 mb-3">
+          <div class="flex gap-0.5">
+            ${Array(Math.floor(p.rating)).fill('<i data-lucide="star" class="w-3.5 h-3.5 text-orange-400 fill-orange-400"></i>').join('')}
+          </div>
+          <span class="text-xs font-semibold text-gray-800">${p.rating}</span>
+          <span class="text-xs text-gray-400">(${p.reviews})</span>
+        </div>
+        <div class="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
+          <span class="text-sm font-bold text-fresh-700">${formatRp(p.price)}</span>
+          <button onclick="event.stopPropagation();addToCart(${p.id})" class="w-8 h-8 bg-fresh-600 hover:bg-fresh-700 text-white rounded-lg flex items-center justify-center transition flex-shrink-0 shadow-md hover:shadow-lg"><i data-lucide="plus" class="w-4 h-4"></i></button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  lucide.createIcons();
+}
+
+function filterByCategory(cat) {
+  currentCat = cat;
+  document.getElementById('category-filter').value = cat;
+  const items = cat === 'all' ? products : products.filter(p => p.cat === cat);
+  renderProducts(items);
+}
+
+function filterProducts(q) {
+  const query = q.toLowerCase();
+  const items = products.filter(p => p.name.toLowerCase().includes(query));
+  renderProducts(items);
+}
+
+// Cart
+function addToCart(id) {
+  const p = products.find(x => x.id === id);
+  const existing = cart.find(x => x.id === id);
+  if (existing) existing.qty++;
+  else cart.push({ ...p, qty: 1 });
+  updateCartBadge();
+}
+
+function updateCartBadge() {
+  const badge = document.getElementById('cart-badge');
+  const total = cart.reduce((s,i) => s + i.qty, 0);
+  badge.textContent = total;
+  badge.classList.toggle('hidden', total === 0);
+}
+
+function toggleCart() {
+  const overlay = document.getElementById('cart-overlay');
+  overlay.classList.toggle('hidden');
+  renderCartItems();
+}
+
+function renderCartItems() {
+  const container = document.getElementById('cart-items');
+  if (cart.length === 0) {
+    container.innerHTML = '<div class="text-center py-12"><p class="text-4xl mb-3">🛒</p><p class="text-gray-400">Keranjang masih kosong</p></div>';
+  } else {
+    container.innerHTML = cart.map(item => `
+      <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+        <span class="text-2xl">${item.emoji}</span>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-gray-800 truncate">${item.name}</p>
+          <p class="text-xs text-gray-500">${formatRp(item.price)}</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="changeQty(${item.id},-1)" class="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100">-</button>
+          <span class="text-sm font-semibold w-5 text-center">${item.qty}</span>
+          <button onclick="changeQty(${item.id},1)" class="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100">+</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  const subtotal = cart.reduce((s,i) => s + i.price * i.qty, 0);
+  document.getElementById('cart-subtotal').textContent = formatRp(subtotal);
+  document.getElementById('cart-total').textContent = formatRp(subtotal);
+}
+
+function changeQty(id, delta) {
+  const item = cart.find(x => x.id === id);
+  if (item) { item.qty += delta; if (item.qty <= 0) cart = cart.filter(x => x.id !== id); }
+  updateCartBadge();
+  renderCartItems();
+}
+
+function toggleMobileMenu() { document.getElementById('mobile-menu').classList.toggle('hidden'); }
+
+// Pages
+function showPage(page) {
+  document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
+  document.getElementById('page-' + page).classList.remove('hidden');
+  window.scrollTo(0,0);
+  if (page === 'checkout') renderCheckout();
+  if (page === 'tracking') renderTracking();
+}
+
+function renderCheckout() {
+  const summary = document.getElementById('checkout-summary');
+  summary.innerHTML = cart.map(i => `<div class="flex justify-between"><span>${i.name} x${i.qty}</span><span>${formatRp(i.price*i.qty)}</span></div>`).join('');
+  const total = cart.reduce((s,i) => s + i.price * i.qty, 0);
+  document.getElementById('checkout-total').textContent = formatRp(total);
+}
+
+function placeOrder() {
+  cart = [];
+  updateCartBadge();
+  showPage('success');
+}
+
+function renderTracking() {
+  document.getElementById('tracking-content').innerHTML = `
+    <div class="bg-white rounded-2xl p-6 border border-gray-100">
+      <div class="flex items-center justify-between mb-6">
+        <div><p class="text-sm text-gray-500">Pesanan #FM-1249</p><p class="text-lg font-bold text-gray-800">Dalam Pengiriman</p></div>
+        <span class="px-3 py-1 bg-fresh-100 text-fresh-700 rounded-full text-sm font-medium">On the way</span>
+      </div>
+      <div class="space-y-4">
+        ${[
+          { t:'14:30', s:'Pesanan dikirim ke alamat Anda', done:true },
+          { t:'14:00', s:'Kurir mengambil pesanan', done:true },
+          { t:'13:45', s:'Pesanan dikemas', done:true },
+          { t:'13:30', s:'Pembayaran dikonfirmasi', done:true },
+          { t:'13:25', s:'Pesanan dibuat', done:true }
+        ].map((step,i) => `
+          <div class="flex gap-3">
+            <div class="flex flex-col items-center"><div class="w-3 h-3 rounded-full ${i===0?'bg-fresh-500 ring-4 ring-fresh-100':'bg-gray-300'}"></div>${i<4?'<div class="w-0.5 h-8 bg-gray-200"></div>':''}</div>
+            <div><p class="text-sm font-medium text-gray-800">${step.s}</p><p class="text-xs text-gray-400">${step.t}</p></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  lucide.createIcons();
+}
+
+// Product detail
+function showProduct(id) {
+  const p = products.find(x => x.id === id);
+  document.getElementById('product-detail').innerHTML = `
+    <div class="grid md:grid-cols-2 gap-8">
+      <div class="bg-white rounded-2xl overflow-hidden border border-gray-100">
+        <div class="h-96 bg-gradient-to-br from-gray-100 to-gray-50 overflow-hidden flex items-center justify-center relative">
+          <img src="${p.image}" alt="${p.name}" loading="lazy" class="w-full h-full object-cover" onerror="this.parentElement.style.background='linear-gradient(135deg, #e5e7eb 0%, #f3f4f6 100%)'">
+          <div class="absolute top-4 left-4 bg-fresh-600 text-white px-3 py-1 rounded-full text-xs font-bold">PREMIUM</div>
+        </div>
+      </div>
+      <div>
+        <p class="text-sm text-fresh-600 font-bold mb-1 uppercase tracking-wide">${categories.find(c=>c.id===p.cat)?.name}</p>
+        <h1 class="text-3xl font-bold text-gray-800 mb-3">${p.name}</h1>
+        <p class="text-gray-600 mb-4">${p.description}</p>
+        <div class="flex items-center gap-2 mb-6">
+          <div class="flex gap-0.5">
+            ${Array(Math.floor(p.rating)).fill('<i data-lucide="star" class="w-5 h-5 text-orange-400 fill-orange-400"></i>').join('')}
+          </div>
+          <span class="text-lg font-bold text-gray-800">${p.rating}</span>
+          <span class="text-sm text-gray-500">(${p.reviews} ulasan)</span>
+        </div>
+        <div class="bg-fresh-50 rounded-xl p-4 mb-6 border border-fresh-200">
+          <p class="text-xs text-fresh-700 font-semibold mb-1">HARGA SPESIAL</p>
+          <p class="text-4xl font-bold text-fresh-700">${formatRp(p.price)}</p>
+          <p class="text-sm text-gray-600 mt-2">per ${p.unit}</p>
+        </div>
+        <button onclick="addToCart(${p.id})" class="w-full px-8 py-4 bg-fresh-600 hover:bg-fresh-700 text-white font-bold rounded-xl transition flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-lg"><i data-lucide="shopping-bag" class="w-6 h-6"></i>Tambah ke Keranjang</button>
+        <div class="mt-10 border-t pt-6">
+          <h3 class="font-bold text-lg text-gray-800 mb-4">Ulasan Pelanggan</h3>
+          <div class="space-y-4">
+            <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-sm font-semibold text-gray-800">Rina Suryanto</span>
+                <div class="flex gap-0.5">
+                  ${Array(5).fill('<i data-lucide="star" class="w-3.5 h-3.5 text-orange-400 fill-orange-400"></i>').join('')}
+                </div>
+              </div>
+              <p class="text-sm text-gray-600">Segar banget! Kualitas terjaga dengan baik. Pasti akan membeli lagi. Pelayanan juga sangat memuaskan!</p>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-sm font-semibold text-gray-800">Dimas Prasetya</span>
+                <div class="flex gap-0.5">
+                  ${Array(4).fill('<i data-lucide="star" class="w-3.5 h-3.5 text-orange-400 fill-orange-400"></i>').join('')}
+                  <i data-lucide="star" class="w-3.5 h-3.5 text-gray-300 fill-gray-300"></i>
+                </div>
+              </div>
+              <p class="text-sm text-gray-600">Kualitas bagus, pengiriman cepat, dan harga sangat kompetitif! Akan jadi pelanggan setia.</p>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-sm font-semibold text-gray-800">Siti Nurhaliza</span>
+                <div class="flex gap-0.5">
+                  ${Array(5).fill('<i data-lucide="star" class="w-3.5 h-3.5 text-orange-400 fill-orange-400"></i>').join('')}
+                </div>
+              </div>
+              <p class="text-sm text-gray-600">Produk sampai dalam kondisi sempurna dan sangat segar. Rekomendasi banget untuk teman-teman!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  showPage('product');
+  lucide.createIcons();
+}
+
+// Auth
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(el => {
+    el.classList.toggle('bg-white', el.dataset.tab === tab);
+    el.classList.toggle('text-fresh-700', el.dataset.tab === tab);
+    el.classList.toggle('shadow-sm', el.dataset.tab === tab);
+    el.classList.toggle('text-gray-500', el.dataset.tab !== tab);
+  });
+  document.getElementById('register-name').classList.toggle('hidden', tab !== 'register');
+}
+
+function handleAuth(e) {
+  e.preventDefault();
+  showPage('home');
+}
+
+// Init
+renderCategories();
+renderProducts(products);
+lucide.createIcons();
+
+// Element SDK
+const defaultConfig = {
+  brand_name: 'FreshMart',
+  hero_title: 'Belanja Segar, Langsung ke Rumah',
+  hero_subtitle: 'Sayur, buah, daging, dan kebutuhan dapur berkualitas dengan harga terbaik. Diantar dalam 2 jam!',
+  promo_text: 'Diskon 30% untuk pembelian pertama!',
+  background_color: '#f9fafb',
+  surface_color: '#ffffff',
+  text_color: '#1f2937',
+  primary_color: '#16a34a',
+  accent_color: '#f97316',
+  font_family: 'Plus Jakarta Sans',
+  font_size: 16
+};
+
+async function initSDK() {
+  if (!window.elementSdk) return;
+  await window.elementSdk.init({
+    defaultConfig,
+    onConfigChange: async (config) => {
+      const c = { ...defaultConfig, ...config };
+      document.getElementById('nav-brand').textContent = c.brand_name;
+      document.getElementById('footer-brand').textContent = c.brand_name;
+      document.getElementById('hero-title').textContent = c.hero_title;
+      document.getElementById('hero-subtitle').textContent = c.hero_subtitle;
+      document.getElementById('promo-badge').querySelector('span').textContent = c.promo_text;
+      document.getElementById('app').style.backgroundColor = c.background_color;
+      document.getElementById('app').style.fontFamily = `${c.font_family}, sans-serif`;
+    },
+    mapToCapabilities: (config) => {
+      const c = { ...defaultConfig, ...config };
+      return {
+        recolorables: [
+          { get: () => c.background_color, set: (v) => window.elementSdk.setConfig({ background_color: v }) },
+          { get: () => c.surface_color, set: (v) => window.elementSdk.setConfig({ surface_color: v }) },
+          { get: () => c.text_color, set: (v) => window.elementSdk.setConfig({ text_color: v }) },
+          { get: () => c.primary_color, set: (v) => window.elementSdk.setConfig({ primary_color: v }) },
+          { get: () => c.accent_color, set: (v) => window.elementSdk.setConfig({ accent_color: v }) },
+        ],
+        borderables: [],
+        fontEditable: { get: () => c.font_family, set: (v) => window.elementSdk.setConfig({ font_family: v }) },
+        fontSizeable: { get: () => c.font_size, set: (v) => window.elementSdk.setConfig({ font_size: v }) },
+      };
+    },
+    mapToEditPanelValues: (config) => {
+      const c = { ...defaultConfig, ...config };
+      return new Map([
+        ['brand_name', c.brand_name],
+        ['hero_title', c.hero_title],
+        ['hero_subtitle', c.hero_subtitle],
+        ['promo_text', c.promo_text],
+      ]);
+    }
+  });
+}
+initSDK();
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a04a792ddfb4410c',t:'MTc4MDI3NzYzOQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
